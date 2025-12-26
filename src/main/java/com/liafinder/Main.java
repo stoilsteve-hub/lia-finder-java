@@ -52,7 +52,8 @@ public class Main {
                 System.out.println("\nTop Matches:");
                 for (int i = 0; i < Math.min(10, scored.size()); i++) {
                     com.liafinder.model.ScoredListing sl = scored.get(i);
-                    System.out.printf("[%d] %s - %s (Score: %.1f)\n", i + 1, sl.title, sl.company, sl.score);
+                    System.out.printf("[%d] %s - %s (Score: %.1f)\n    URL: %s\n", i + 1, sl.title, sl.company,
+                            sl.score, sl.url);
                 }
 
             } else if ("outreach".equals(mode) || "2".equals(mode)) {

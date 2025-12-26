@@ -5,8 +5,80 @@ Welcome to the Java port of the **LIA Finder AI Assistant**. This tool is design
 The tool monitors the **JobTech (Platsbanken) API**, applies strict relevance filtering, and helps you build outreach materials.
 
 ## 📊 Architecture & Use Cases
-We follow a modern **Service/DTO architecture**. You can find detailed diagrams and design patterns in:
-👉 [**Architecture Diagrams**](architecture_diagrams.md)
+We follow a modern **Service/DTO architecture**.
+
+### Use Case Diagram
+```mermaid
+graph LR
+    U["User (Student)"]
+    
+    subgraph "LIA Finder System"
+        UC1("Monitor LIA (Option 1)")
+        UC2("Build Outreach (Option 2)")
+        UC3("Run Daemon (Option 3)")
+        UC4("Fetch from JobTech API")
+        UC5("Generate DOCX/Email")
+    end
+
+    U --> UC1
+    U --> UC2
+    U --> UC3
+    
+    UC1 -.->|include| UC4
+    UC2 -.->|include| UC5
+```
+
+### Class Diagram
+```mermaid
+classDiagram
+    class Main {
+        +main(args)
+        -chooseMode() String
+    }
+
+    class ConfigLoader {
+        +loadConfig(path) AppConfig
+        +loadCompanies(path) List~Company~
+        +loadProfile(path) Profile
+    }
+
+    class JobSearchService {
+        +fetchListings(AppConfig) List~Listing~
+        -parseResponse(json, AppConfig)
+        -buildQueries(AppConfig)
+    }
+
+    class RankingService {
+        +scoreListings(AppConfig, List~Listing~) List~ScoredListing~
+    }
+
+    class OutreachService {
+        +generateOutreach(AppConfig, Company, Profile)
+    }
+
+    %% Data Models
+    class Listing {
+        +String title
+        +String company
+        +String location
+        +String url
+        +String description
+    }
+
+    class ScoredListing {
+        +double score
+        +List~String~ reasons
+    }
+
+    %% Relationships
+    Listing <|-- ScoredListing : Inheritance
+    Main --> ConfigLoader : Uses
+    Main --> JobSearchService : Orchestrates
+    Main --> RankingService : Orchestrates
+    Main --> OutreachService : Orchestrates
+```
+
+Detailed design patterns and descriptions can be found in [**Architecture Diagrams**](architecture_diagrams.md)
 
 ## 🚀 How to Run
 

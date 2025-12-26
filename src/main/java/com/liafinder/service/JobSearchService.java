@@ -88,12 +88,15 @@ public class JobSearchService {
                     "LIA backend Java remote"));
         }
 
-        // De-duplicate
         return new ArrayList<>(new HashSet<>(base));
     }
 
     private static List<Listing> parseResponse(String jsonBody, AppConfig cfg) {
         List<Listing> listings = new ArrayList<>();
+        int droppedExclusion = 0;
+        int droppedNoLia = 0;
+        int droppedWrongDate = 0;
+
         try {
             JsonNode root = mapper.readTree(jsonBody);
             JsonNode hits = root.path("hits");
@@ -104,17 +107,6 @@ public class JobSearchService {
                         title = hit.path("title").asText("");
 
                     String employer = hit.path("employer").path("name").asText("");
-
-                    JsonNode wp = hit.path("workplace_address");
-                    String location = wp.path("municipality").asText("");
-                    if (location.isEmpty())
-                        location = wp.path("city").asText("");
-
-                    String adId = hit.path("id").asText("");
-                    String url = hit.path("webpage_url").asText("");
-                    if (url.isEmpty() && !adId.isEmpty()) {
-                        url = "https://platsbanken.se/annons/" + adId;
-                    }
 
                     String description = "";
                     JsonNode descNode = hit.path("description");
@@ -127,33 +119,65 @@ public class JobSearchService {
                     String combinedL = (title + "\n" + description).toLowerCase();
                     String titleL = title.toLowerCase();
 
-                    // Filtering Logic (Gates)
+                    // --- 1. Aggressive Filtering GATES ---
 
-                    // 1. Exclude obvious non-LIA/permanent jobs
-                    List<String> notLia = cfg.search().notLiaTerms();
-                    if (notLia == null || notLia.isEmpty()) {
-                        // Fallback to linkedin section if search section is empty
-                        notLia = (cfg.linkedin() != null) ? cfg.linkedin().notLiaTerms() : null;
+                    // A. Exclusion terms (Permanent jobs, Senior roles, etc.)
+                    List<String> notLia = new ArrayList<>();
+                    if (cfg.search().notLiaTerms() != null)
+                        notLia.addAll(cfg.search().notLiaTerms());
+                    if (cfg.linkedin() != null && cfg.linkedin().notLiaTerms() != null) {
+                        for (String term : cfg.linkedin().notLiaTerms()) {
+                            if (!notLia.contains(term))
+                                notLia.add(term);
+                        }
                     }
-                    if (notLia != null && containsAny(combinedL, notLia)) {
+                    // Additional hardcoded safety terms
+                    notLia.addAll(List.of("provanställning", "6 månader", "erfarenhet av minst", "senior developer",
+                            "principal"));
+
+                    if (containsAny(combinedL, notLia)) {
+                        droppedExclusion++;
                         continue;
                     }
 
-                    // 2. LIA gate
+                    // B. LIA Mandatory Term
                     boolean hasLiaTerm = containsAny(combinedL, cfg.search().liaTerms());
                     if (cfg.search().strict() != null && cfg.search().strict().titleMustContainLia()) {
                         if (!containsAny(titleL, cfg.search().liaTerms())) {
+                            droppedNoLia++;
                             continue;
                         }
                     } else if (!hasLiaTerm) {
+                        droppedNoLia++;
                         continue;
                     }
 
-                    // 3. Java gate
-                    if (cfg.search().strict() != null && cfg.search().strict().mustContainJava()) {
-                        if (!containsAny(combinedL, cfg.search().javaTerms())) {
-                            continue;
-                        }
+                    // C. Date Heuristic (Specific to user requirement: Oct 2026 - March 2027)
+                    // If the ad contains a date like "2025" or "januari 2026", but NOT "oktober
+                    // 2026",
+                    // and it's for any kind of "start", we might be suspicious.
+                    // For now, let's just look for "2026" or "2027".
+                    if (!combinedL.contains("2026") && !combinedL.contains("2027")) {
+                        // Some LIA ads don't mention the year if it's "next term",
+                        // so we won't DROP them hard, but we'll be careful.
+                    }
+
+                    // If it specifically mentions "omgående" (immediately), it's probably NOT for
+                    // Oct 2026.
+                    if (combinedL.contains("omgående") && !combinedL.contains("oktober")) {
+                        droppedWrongDate++;
+                        continue;
+                    }
+
+                    JsonNode wp = hit.path("workplace_address");
+                    String location = wp.path("municipality").asText("");
+                    if (location.isEmpty())
+                        location = wp.path("city").asText("");
+
+                    String adId = hit.path("id").asText("");
+                    String url = hit.path("webpage_url").asText("");
+                    if (url.isEmpty() && !adId.isEmpty()) {
+                        url = "https://platsbanken.se/annons/" + adId;
                     }
 
                     listings.add(new Listing(title, employer, location, url, description, "JobTech"));
@@ -162,6 +186,12 @@ public class JobSearchService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        if (droppedExclusion > 0 || droppedNoLia > 0 || droppedWrongDate > 0) {
+            System.out.println("  Filtered: " + droppedNoLia + " missing LIA terms, "
+                    + droppedExclusion + " permanent/senior jobs, " + droppedWrongDate + " wrong start dates.");
+        }
+
         return listings;
     }
 

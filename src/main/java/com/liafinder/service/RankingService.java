@@ -61,7 +61,21 @@ public class RankingService {
                 }
             }
 
-            // 4. Remote / location bonuses
+            // 4. Specific Date Bonus (Oct 2026 - March 2027)
+            if (combinedLower.contains("2026") || combinedLower.contains("2027")) {
+                score += 5.0;
+                if (combinedLower.contains("oktober") || combinedLower.contains("october")
+                        || combinedLower.contains("10")) {
+                    score += 10.0;
+                    sl.reasons.add("Target month match (October)");
+                }
+                if (combinedLower.contains("mars") || combinedLower.contains("march") || combinedLower.contains("03")) {
+                    score += 5.0;
+                    sl.reasons.add("Target month match (March)");
+                }
+            }
+
+            // 5. Remote / location bonuses
             if (cfg.search().remoteOk() && combinedLower.contains("remote")) {
                 score += 2.0;
             }

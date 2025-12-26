@@ -1,0 +1,98 @@
+search:
+  locations:
+    - Stockholm
+  remote_ok: true
+
+  # Multi-query strategy (we'll combine these)
+  lia_terms:
+    - LIA
+    - praktik
+    - praktikplats
+    - "lärande i arbete"
+    - YH
+    - yrkeshögskola
+    - internship
+    - intern
+    - trainee
+    - "work placement"
+
+  java_terms:
+    - Java
+    - JVM
+    - Spring
+    - "Spring Boot"
+    - "Spring Security"
+    - "Spring Data"
+    - Hibernate
+    - JPA
+    - JDBC
+    - Maven
+    - Gradle
+    - Kotlin
+    - backend
+    - backendutvecklare
+    - systemutvecklare
+    - javautvecklare
+    - microservice
+    - microservices
+    - mikroservice
+    - mikroservicar
+    - REST
+    - API
+    - Kafka
+    - RabbitMQ
+    - JUnit
+    - Selenium
+    - testautomation
+    - testautomatisering
+    - "test automation"
+    - SDET
+
+linkedin:
+  enabled: true
+  queries:
+    - 'LIA Java Stockholm'
+    - 'LIA Javautvecklare Stockholm'
+    - 'LIA backend Java Stockholm'
+    - 'LIA fullstack Java Stockholm'
+    - 'praktik Java Stockholm'
+    - 'praktik javautvecklare Stockholm'
+    - 'internship Java Stockholm'
+    - 'internship backend Java Stockholm'
+    - 'LIA distans Java'
+    - 'praktik distans Java'
+
+
+  not_lia_terms:
+    - tillsvidare
+    - heltid
+    - "fast anställning"
+    - senior
+    - lead
+    - principal
+    - full-time
+    - permanent
+
+  # Strictness controls
+  strict:
+    # If true, require LIA/praktik terms to appear in TITLE (not just description).
+    title_must_contain_lia: true
+
+    # If true, require Java/JVM terms to appear in TITLE OR description (recommended true).
+    must_contain_java: true
+
+  # Query building knobs
+  query:
+    max_per_query: 50
+    add_remote_queries: true
+
+lia:
+  start_date: 2026-10
+  end_date: 2026-03-12
+  target:
+    desired_start: 2026-10
+
+
+output:
+  data_dir: data
+  applications_dir: data/applications

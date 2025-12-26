@@ -1,0 +1,27 @@
+companies:
+  - name: "Example Consulting AB"
+    location: "Stockholm/Remote"
+    website: "https://example.com"
+    careers: "https://example.com/careers"
+    contact_email: ""
+    stack_hints:
+      - Java
+      - Spring Boot
+      - React
+    domain: "konsult"
+    why: "Jag gillar konsultmiljöer där man får arbeta nära olika team och leverera värde snabbt."
+    notes: "Konsultbolag med backend + frontend team."
+
+  - name: "Example Product Company"
+    location: "Stockholm"
+    website: "https://example.org"
+    careers: ""
+    contact_email: ""
+    stack_hints:
+      - Java
+      - Microservices
+      - Kubernetes
+      - React
+    domain: "produktbolag"
+    why: "Jag vill gärna jobba i ett produktteam där man tar ansvar från idé till deployment."
+    notes: "Produktbolag. Bra för LIA HT26."

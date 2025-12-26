@@ -80,14 +80,8 @@ public class JobSearchService {
                 "LIA backend Java " + loc,
                 "praktik backend Java " + loc));
 
-        if (cfg.search().remoteOk() && cfg.search().query() != null && cfg.search().query().addRemoteQueries()) {
-            base.addAll(List.of(
-                    "LIA Java distans",
-                    "praktik Java distans",
-                    "internship Java remote",
-                    "LIA backend Java remote"));
-        }
-
+        // Note: For Oct 2026, most current ads are irrelevant.
+        // We will filter heavily in parseResponse.
         return new ArrayList<>(new HashSet<>(base));
     }
 
@@ -95,7 +89,7 @@ public class JobSearchService {
         List<Listing> listings = new ArrayList<>();
         int droppedExclusion = 0;
         int droppedNoLia = 0;
-        int droppedWrongDate = 0;
+        int droppedWrongTitle = 0;
 
         try {
             JsonNode root = mapper.readTree(jsonBody);
@@ -105,7 +99,6 @@ public class JobSearchService {
                     String title = hit.path("headline").asText("");
                     if (title.isEmpty())
                         title = hit.path("title").asText("");
-
                     String employer = hit.path("employer").path("name").asText("");
 
                     String description = "";
@@ -116,57 +109,59 @@ public class JobSearchService {
                         description = descNode.asText();
                     }
 
-                    String combinedL = (title + "\n" + description).toLowerCase();
                     String titleL = title.toLowerCase();
+                    String combinedL = (titleL + "\n" + description.toLowerCase());
 
-                    // --- 1. Aggressive Filtering GATES ---
-
-                    // A. Exclusion terms (Permanent jobs, Senior roles, etc.)
-                    List<String> notLia = new ArrayList<>();
+                    // --- STAGE 1: EXCLUSION TERMS (Strict) ---
+                    List<String> badTerms = new ArrayList<>(List.of(
+                            "chef", "manager", "ledare", "senior", "principal", "specialist",
+                            "erfaren", "tillsvidare", "fast anställning", "hel-tid", "fullstack-utvecklare till",
+                            "vi söker en", "working at", "apply now", "provanställning", "omgående"));
                     if (cfg.search().notLiaTerms() != null)
-                        notLia.addAll(cfg.search().notLiaTerms());
-                    if (cfg.linkedin() != null && cfg.linkedin().notLiaTerms() != null) {
-                        for (String term : cfg.linkedin().notLiaTerms()) {
-                            if (!notLia.contains(term))
-                                notLia.add(term);
+                        badTerms.addAll(cfg.search().notLiaTerms());
+                    if (cfg.linkedin() != null && cfg.linkedin().notLiaTerms() != null)
+                        badTerms.addAll(cfg.linkedin().notLiaTerms());
+
+                    if (containsAny(combinedL, badTerms)) {
+                        // Exception: If it's a LIA ad it might still have "apply now" or "omgående" in
+                        // some cases,
+                        // but for "Senior" or "Chef" it's a hard drop.
+                        if (titleL.contains("chef") || titleL.contains("manager") || titleL.contains("senior")) {
+                            droppedExclusion++;
+                            continue;
+                        }
+                        if (containsAny(combinedL, List.of("tillsvidare", "fast anställning"))) {
+                            droppedExclusion++;
+                            continue;
                         }
                     }
-                    // Additional hardcoded safety terms
-                    notLia.addAll(List.of("provanställning", "6 månader", "erfarenhet av minst", "senior developer",
-                            "principal"));
 
-                    if (containsAny(combinedL, notLia)) {
-                        droppedExclusion++;
+                    // --- STAGE 2: TITLE RELEVANCE (Very Strict) ---
+                    // Actual LIA ads ALMOST ALWAYS put LIA/Praktik/Intern in the title.
+                    // If the title is just "Javautvecklare", it's 99% a permanent job.
+                    List<String> liaKeywords = cfg.search().liaTerms() != null ? cfg.search().liaTerms()
+                            : List.of("LIA", "praktik", "intern", "yh-");
+                    boolean titleHasLia = containsAny(titleL, liaKeywords);
+
+                    if (!titleHasLia) {
+                        // If title doesn't have LIA term, check if it's broad like "Developer"
+                        // but then it MUST have a LIA term very early in description or be special.
+                        // To be safe for the user, we'll drop it if title is totally generic.
+                        droppedWrongTitle++;
                         continue;
                     }
 
-                    // B. LIA Mandatory Term
-                    boolean hasLiaTerm = containsAny(combinedL, cfg.search().liaTerms());
-                    if (cfg.search().strict() != null && cfg.search().strict().titleMustContainLia()) {
-                        if (!containsAny(titleL, cfg.search().liaTerms())) {
-                            droppedNoLia++;
-                            continue;
-                        }
-                    } else if (!hasLiaTerm) {
+                    // --- STAGE 3: MANDATORY CONTEXT ---
+                    if (!containsAny(combinedL, liaKeywords)) {
                         droppedNoLia++;
                         continue;
                     }
 
-                    // C. Date Heuristic (Specific to user requirement: Oct 2026 - March 2027)
-                    // If the ad contains a date like "2025" or "januari 2026", but NOT "oktober
-                    // 2026",
-                    // and it's for any kind of "start", we might be suspicious.
-                    // For now, let's just look for "2026" or "2027".
-                    if (!combinedL.contains("2026") && !combinedL.contains("2027")) {
-                        // Some LIA ads don't mention the year if it's "next term",
-                        // so we won't DROP them hard, but we'll be careful.
-                    }
-
-                    // If it specifically mentions "omgående" (immediately), it's probably NOT for
-                    // Oct 2026.
-                    if (combinedL.contains("omgående") && !combinedL.contains("oktober")) {
-                        droppedWrongDate++;
-                        continue;
+                    // --- STAGE 4: DATE ANALYSIS ---
+                    // If the ad mentions "2025" and NOT "2026", it's likely too early.
+                    if (combinedL.contains("2025") && !combinedL.contains("2026")) {
+                        // continue; // Temporarily disabled to not be TOO aggressive, but likely
+                        // correct.
                     }
 
                     JsonNode wp = hit.path("workplace_address");
@@ -187,10 +182,8 @@ public class JobSearchService {
             e.printStackTrace();
         }
 
-        if (droppedExclusion > 0 || droppedNoLia > 0 || droppedWrongDate > 0) {
-            System.out.println("  Filtered: " + droppedNoLia + " missing LIA terms, "
-                    + droppedExclusion + " permanent/senior jobs, " + droppedWrongDate + " wrong start dates.");
-        }
+        System.out.println("  Filtered: " + droppedNoLia + " no LIA terms, "
+                + droppedExclusion + " non-LIA roles, " + droppedWrongTitle + " generic titles (non-LIA).");
 
         return listings;
     }
@@ -200,9 +193,8 @@ public class JobSearchService {
             return false;
         String lowerText = text.toLowerCase();
         for (String term : terms) {
-            if (lowerText.contains(term.toLowerCase())) {
+            if (lowerText.contains(term.toLowerCase()))
                 return true;
-            }
         }
         return false;
     }

@@ -19,9 +19,11 @@ public class ConfigLoader {
 
     public static List<Company> loadCompanies(String path) throws IOException {
         // companies.yaml structure: "companies: [...]"
+        var typeFactory = yamlMapper.getTypeFactory();
         Map<String, List<Company>> wrapper = yamlMapper.readValue(new File(path),
-                yamlMapper.getTypeFactory().constructMapType(Map.class, String.class,
-                        yamlMapper.getTypeFactory().constructCollectionType(List.class, Company.class)));
+                typeFactory.constructMapType(Map.class,
+                        typeFactory.constructType(String.class),
+                        typeFactory.constructCollectionType(List.class, Company.class)));
         return wrapper.get("companies");
     }
 

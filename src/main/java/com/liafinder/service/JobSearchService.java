@@ -124,8 +124,37 @@ public class JobSearchService {
                         description = descNode.asText();
                     }
 
-                    // Simple basic filter to ensure it's not totally irrelevant
-                    // (Real logic should have the strict checks from Python)
+                    String combinedL = (title + "\n" + description).toLowerCase();
+                    String titleL = title.toLowerCase();
+
+                    // Filtering Logic (Gates)
+
+                    // 1. Exclude obvious non-LIA/permanent jobs
+                    List<String> notLia = cfg.search().notLiaTerms();
+                    if (notLia == null || notLia.isEmpty()) {
+                        // Fallback to linkedin section if search section is empty
+                        notLia = (cfg.linkedin() != null) ? cfg.linkedin().notLiaTerms() : null;
+                    }
+                    if (notLia != null && containsAny(combinedL, notLia)) {
+                        continue;
+                    }
+
+                    // 2. LIA gate
+                    boolean hasLiaTerm = containsAny(combinedL, cfg.search().liaTerms());
+                    if (cfg.search().strict() != null && cfg.search().strict().titleMustContainLia()) {
+                        if (!containsAny(titleL, cfg.search().liaTerms())) {
+                            continue;
+                        }
+                    } else if (!hasLiaTerm) {
+                        continue;
+                    }
+
+                    // 3. Java gate
+                    if (cfg.search().strict() != null && cfg.search().strict().mustContainJava()) {
+                        if (!containsAny(combinedL, cfg.search().javaTerms())) {
+                            continue;
+                        }
+                    }
 
                     listings.add(new Listing(title, employer, location, url, description, "JobTech"));
                 }
@@ -134,6 +163,18 @@ public class JobSearchService {
             e.printStackTrace();
         }
         return listings;
+    }
+
+    private static boolean containsAny(String text, List<String> terms) {
+        if (terms == null || text == null)
+            return false;
+        String lowerText = text.toLowerCase();
+        for (String term : terms) {
+            if (lowerText.contains(term.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static List<Listing> removeDuplicates(List<Listing> raw) {

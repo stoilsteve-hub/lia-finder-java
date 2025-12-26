@@ -16,32 +16,59 @@ public class RankingService {
 
         for (Listing l : listings) {
             ScoredListing sl = new ScoredListing(l);
-            double score = 0.0;
-            String text = (l.title + " " + l.location + " " + (l.description != null ? l.description : ""))
-                    .toLowerCase();
+            double score = 1.0; // Base score
+            String titleLower = l.title.toLowerCase();
+            String descriptionLower = (l.description != null ? l.description : "").toLowerCase();
+            String combinedLower = (titleLower + " " + descriptionLower);
 
-            // Check Java Terms
-            if (cfg.search().javaTerms() != null) {
-                for (String term : cfg.search().javaTerms()) {
-                    if (text.contains(term.toLowerCase())) {
-                        score += 10;
-                        sl.reasons.add("Matched keyword: " + term);
+            // 1. LIA Term Bonus (Higher weights for LIA relevance)
+            if (cfg.search().liaTerms() != null) {
+                for (String term : cfg.search().liaTerms()) {
+                    String t = term.toLowerCase();
+                    if (titleLower.contains(t)) {
+                        score += 15.0; // Large bonus for LIA in title
+                        sl.reasons.add("LIA term in title: " + term);
+                    } else if (descriptionLower.contains(t)) {
+                        score += 5.0;
+                        sl.reasons.add("LIA term in description: " + term);
                     }
                 }
             }
 
-            // Check Remote
-            if (cfg.search().remoteOk() && text.contains("remote")) {
-                score += 5;
-                sl.reasons.add("Remote mention");
+            // 2. Java Term Bonus
+            if (cfg.search().javaTerms() != null) {
+                for (String term : cfg.search().javaTerms()) {
+                    String t = term.toLowerCase();
+                    if (titleLower.contains(t)) {
+                        score += 5.0;
+                    } else if (descriptionLower.contains(t)) {
+                        score += 2.0;
+                    }
+                }
             }
 
-            // Check Location
+            // 3. Exclusion Penalties (Secondary check)
+            List<String> notLia = cfg.search().notLiaTerms();
+            if (notLia == null || notLia.isEmpty()) {
+                notLia = (cfg.linkedin() != null) ? cfg.linkedin().notLiaTerms() : null;
+            }
+            if (notLia != null) {
+                for (String term : notLia) {
+                    if (combinedLower.contains(term.toLowerCase())) {
+                        score -= 50.0; // Heavy penalty
+                        sl.reasons.add("Excluded term found: " + term);
+                    }
+                }
+            }
+
+            // 4. Remote / location bonuses
+            if (cfg.search().remoteOk() && combinedLower.contains("remote")) {
+                score += 2.0;
+            }
             if (cfg.search().locations() != null) {
                 for (String loc : cfg.search().locations()) {
-                    if (text.contains(loc.toLowerCase())) {
-                        score += 3;
-                        sl.reasons.add("Location match");
+                    if (combinedLower.contains(loc.toLowerCase())) {
+                        score += 1.0;
                     }
                 }
             }

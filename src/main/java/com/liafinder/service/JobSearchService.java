@@ -33,7 +33,7 @@ public class JobSearchService {
 
         List<Listing> allListings = new ArrayList<>();
         List<String> queries = buildQueries(cfg);
-        int limit = cfg.search().query().maxPerQuery();
+        int limit = (cfg.search().query() != null) ? cfg.search().query().maxPerQuery() : 50;
 
         System.out.println("Fetching listings for " + queries.size() + " queries...");
 
@@ -80,7 +80,7 @@ public class JobSearchService {
                 "LIA backend Java " + loc,
                 "praktik backend Java " + loc));
 
-        if (cfg.search().remoteOk() && cfg.search().query().addRemoteQueries()) {
+        if (cfg.search().remoteOk() && cfg.search().query() != null && cfg.search().query().addRemoteQueries()) {
             base.addAll(List.of(
                     "LIA Java distans",
                     "praktik Java distans",

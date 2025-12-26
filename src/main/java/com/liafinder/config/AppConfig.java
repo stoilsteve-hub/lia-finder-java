@@ -55,7 +55,7 @@ public record AppConfig(
     public record LinkedInConfig(
             boolean enabled,
             List<String> queries,
-            boolean strict,
+            StrictConfig strict,
             @JsonProperty("not_lia_terms") List<String> notLiaTerms) {
     }
 }

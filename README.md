@@ -1,4 +1,4 @@
-# LIA Finder AI Assistant (Java Version) 🤖🇸🇪
+# LIA Finder AI Assistant (Java Version Under Construction...) 🤖🇸🇪
 
 Welcome to the Java port of the **LIA Finder AI Assistant**. This tool is designed to help Java developer students proactively find LIA (Lärande i Arbete) opportunities in Sweden.
 

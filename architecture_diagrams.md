@@ -15,6 +15,7 @@ graph LR
         UC3("Run Daemon (Option 3)")
         UC4("Fetch from JobTech API")
         UC5("Generate DOCX/Email")
+        UC6("Save Results to JSON")
     end
 
     U --> UC1
@@ -22,7 +23,10 @@ graph LR
     U --> UC3
     
     UC1 -.->|include| UC4
+    UC1 -.->|include| UC6
     UC2 -.->|include| UC5
+    UC3 -.->|include| UC4
+    UC3 -.->|include| UC6
 ```
 
 ---
@@ -57,6 +61,14 @@ classDiagram
         +generateOutreach(AppConfig, Company, Profile)
     }
 
+    class StorageService {
+        +saveListings(List~ScoredListing~, String path)
+    }
+
+    class DaemonService {
+        +start(AppConfig)
+    }
+
     %% Data Models
     class Listing {
         +String title
@@ -84,6 +96,12 @@ classDiagram
     Main --> JobSearchService : Orchestrates
     Main --> RankingService : Orchestrates
     Main --> OutreachService : Orchestrates
+    Main --> StorageService : Orchestrates
+    Main --> DaemonService : Orchestrates
+    
+    DaemonService --> JobSearchService : Uses
+    DaemonService --> RankingService : Uses
+    DaemonService --> StorageService : Uses
     
     JobSearchService ..> Listing : Produces
     RankingService ..> ScoredListing : Produces
@@ -97,3 +115,4 @@ classDiagram
 - **Data Transfer Object (DTO)**: Java Records are used to move data safely.
 - **Static Factory**: `ConfigLoader` acts as a factory for configuration objects.
 - **Inheritance**: `ScoredListing` extends `Listing` to add ranking data.
+- **Daemon/Worker Pattern**: `DaemonService` runs background tasks on a schedule.

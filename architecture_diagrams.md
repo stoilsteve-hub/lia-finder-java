@@ -110,7 +110,7 @@ classDiagram
     JobSearchService --> AppConfig : Configures Search
 ```
 
-## 3. Design Patterns (Student Friendly Explanation)
+## 3. Design Patterns
 Here is a breakdown of the "building blocks" used in this project and why they make life easier for a developer.
 
 ### 🏗️ Service Layer Pattern (The "Specialist" Approach)

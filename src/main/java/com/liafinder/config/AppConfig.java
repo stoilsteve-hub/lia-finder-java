@@ -37,6 +37,7 @@ public record AppConfig(
     public record LiaConfig(
             @JsonProperty("start_date") String startDate,
             @JsonProperty("end_date") String endDate,
+            @JsonProperty("extension_weeks") int extensionWeeks,
             TargetConfig target) {
     }
 

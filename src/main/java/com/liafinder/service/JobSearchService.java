@@ -80,6 +80,11 @@ public class JobSearchService {
                 "LIA backend Java " + loc,
                 "praktik backend Java " + loc));
 
+        // Add LinkedIn queries if enabled
+        if (cfg.linkedin() != null && cfg.linkedin().enabled() && cfg.linkedin().queries() != null) {
+            base.addAll(cfg.linkedin().queries());
+        }
+
         // Note: For Oct 2026, most current ads are irrelevant.
         // We will filter heavily in parseResponse.
         return new ArrayList<>(new HashSet<>(base));

@@ -114,3 +114,5 @@ For a detailed guide on how the project was built and how to use it, see:
 
 ---
 *Created with ❤️ for Java students.*
+
+*Stoil* 

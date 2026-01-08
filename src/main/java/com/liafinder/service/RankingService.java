@@ -61,17 +61,30 @@ public class RankingService {
                 }
             }
 
-            // 4. Specific Date Bonus (Oct 2026 - March 2027)
+            // 4. Specific Date Bonus (Dynamic based on config)
+            // Target: Oct 2026 - March 2027
             if (combinedLower.contains("2026") || combinedLower.contains("2027")) {
                 score += 5.0;
-                if (combinedLower.contains("oktober") || combinedLower.contains("october")
-                        || combinedLower.contains("10")) {
+                
+                // Check for start date (October)
+                if (combinedLower.contains("oktober") || combinedLower.contains("october") || combinedLower.contains("10")) {
                     score += 10.0;
-                    sl.reasons.add("Target month match (October)");
+                    sl.reasons.add("Target start month match (October)");
                 }
+                
+                // Check for end date (March)
                 if (combinedLower.contains("mars") || combinedLower.contains("march") || combinedLower.contains("03")) {
                     score += 5.0;
-                    sl.reasons.add("Target month match (March)");
+                    sl.reasons.add("Target end month match (March)");
+                }
+
+                // Check for extension mention
+                if (cfg.lia().extensionWeeks() > 0) {
+                    if (combinedLower.contains("förlängning") || combinedLower.contains("extension") || 
+                        combinedLower.contains("sommarjobb") || combinedLower.contains("summer")) {
+                        score += 5.0;
+                        sl.reasons.add("Potential extension/summer job mentioned");
+                    }
                 }
             }
 

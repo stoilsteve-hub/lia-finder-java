@@ -4,6 +4,7 @@ import com.liafinder.config.AppConfig;
 import com.liafinder.config.ConfigLoader;
 import com.liafinder.model.Company;
 import com.liafinder.model.Profile;
+import com.liafinder.service.DaemonService;
 import com.liafinder.service.OutreachService;
 import com.liafinder.service.StorageService;
 
@@ -73,7 +74,7 @@ public class Main {
                 }
 
             } else if ("daemon".equals(mode) || "3".equals(mode)) {
-                System.out.println("Mode: Daemon (Not implemented yet)");
+                DaemonService.start(config);
 
             } else {
                 System.out.println("Unknown mode: " + mode);

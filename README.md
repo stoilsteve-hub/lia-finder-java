@@ -58,4 +58,4 @@ java -jar target/lia-finder-1.0-SNAPSHOT.jar
 - `profile.yaml`: Your personal data for outreach.
 
 ---
-*Created for the Analysis & Design VG Assignment.*
+*Created with LOVE for my Java classmates to use freely.*

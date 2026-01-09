@@ -29,7 +29,7 @@ public class DaemonService {
 
     public static void start(AppConfig config) {
         System.out.println("Starting Daemon Mode...");
-        System.out.println("Will run every 24 hours.");
+        System.out.println("Will run every 1 hour.");
 
         Runnable task = () -> {
             try {
@@ -55,7 +55,7 @@ public class DaemonService {
             }
         };
 
-        scheduler.scheduleAtFixedRate(task, 0, 24, TimeUnit.HOURS);
+        scheduler.scheduleAtFixedRate(task, 0, 1, TimeUnit.HOURS);
         
         try {
             Thread.currentThread().join();

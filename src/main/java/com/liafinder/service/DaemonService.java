@@ -29,7 +29,8 @@ public class DaemonService {
                 List<Listing> listings = JobSearchService.fetchListings(config);
                 System.out.println("[Daemon] Found " + listings.size() + " listings.");
 
-                List<ScoredListing> scored = RankingService.scoreListings(config, listings);
+                RankingService rankingService = new RankingService();
+                List<ScoredListing> scored = rankingService.scoreListings(config, listings);
                 
                 if (!scored.isEmpty()) {
                     StorageService.saveListings(scored, config.output().dataDir());
@@ -44,10 +45,8 @@ public class DaemonService {
             }
         };
 
-        // Run immediately, then every 24 hours
         scheduler.scheduleAtFixedRate(task, 0, 24, TimeUnit.HOURS);
         
-        // Keep the main thread alive
         try {
             Thread.currentThread().join();
         } catch (InterruptedException e) {

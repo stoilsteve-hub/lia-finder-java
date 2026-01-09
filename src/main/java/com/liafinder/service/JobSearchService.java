@@ -85,8 +85,7 @@ public class JobSearchService {
             base.addAll(cfg.linkedin().queries());
         }
 
-        // Note: For Oct 2026, most current ads are irrelevant.
-        // We will filter heavily in parseResponse.
+        // Filter out old ads later
         return new ArrayList<>(new HashSet<>(base));
     }
 
@@ -117,7 +116,7 @@ public class JobSearchService {
                     String titleL = title.toLowerCase();
                     String combinedL = (titleL + "\n" + description.toLowerCase());
 
-                    // --- STAGE 1: EXCLUSION TERMS (Strict) ---
+                    // 1. Check for bad words
                     List<String> badTerms = new ArrayList<>(List.of(
                             "chef", "manager", "ledare", "senior", "principal", "specialist",
                             "erfaren", "tillsvidare", "fast anställning", "hel-tid", "fullstack-utvecklare till",
@@ -128,9 +127,7 @@ public class JobSearchService {
                         badTerms.addAll(cfg.linkedin().notLiaTerms());
 
                     if (containsAny(combinedL, badTerms)) {
-                        // Exception: If it's a LIA ad it might still have "apply now" or "omgående" in
-                        // some cases,
-                        // but for "Senior" or "Chef" it's a hard drop.
+                        // Skip senior roles or permanent jobs
                         if (titleL.contains("chef") || titleL.contains("manager") || titleL.contains("senior")) {
                             droppedExclusion++;
                             continue;
@@ -141,32 +138,26 @@ public class JobSearchService {
                         }
                     }
 
-                    // --- STAGE 2: TITLE RELEVANCE (Very Strict) ---
-                    // Actual LIA ads ALMOST ALWAYS put LIA/Praktik/Intern in the title.
-                    // If the title is just "Javautvecklare", it's 99% a permanent job.
+                    // 2. Check title for LIA keywords
+                    // Most LIA ads have "LIA" or "Intern" in the title
                     List<String> liaKeywords = cfg.search().liaTerms() != null ? cfg.search().liaTerms()
                             : List.of("LIA", "praktik", "intern", "yh-");
                     boolean titleHasLia = containsAny(titleL, liaKeywords);
 
                     if (!titleHasLia) {
-                        // If title doesn't have LIA term, check if it's broad like "Developer"
-                        // but then it MUST have a LIA term very early in description or be special.
-                        // To be safe for the user, we'll drop it if title is totally generic.
                         droppedWrongTitle++;
                         continue;
                     }
 
-                    // --- STAGE 3: MANDATORY CONTEXT ---
+                    // 3. Double check description
                     if (!containsAny(combinedL, liaKeywords)) {
                         droppedNoLia++;
                         continue;
                     }
 
-                    // --- STAGE 4: DATE ANALYSIS ---
-                    // If the ad mentions "2025" and NOT "2026", it's likely too early.
+                    // 4. Check dates (optional)
                     if (combinedL.contains("2025") && !combinedL.contains("2026")) {
-                        // continue; // Temporarily disabled to not be TOO aggressive, but likely
-                        // correct.
+                        // skip for now
                     }
 
                     JsonNode wp = hit.path("workplace_address");

@@ -42,7 +42,6 @@ public class OutreachService {
     private static String generateEmailBody(AppConfig cfg, Company company, Profile profile) {
         return "Subject: LIA Request\n\nHello " + company.name() + ",\n\n" +
                 "I am writing to enquire about LIA opportunities...\n" +
-                // ... logic to fill details
                 "\nBest details,\n" + profile.person().get("full_name");
     }
 

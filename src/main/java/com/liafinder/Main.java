@@ -6,6 +6,7 @@ import com.liafinder.model.Company;
 import com.liafinder.model.Profile;
 import com.liafinder.service.DaemonService;
 import com.liafinder.service.OutreachService;
+import com.liafinder.service.RankingService;
 import com.liafinder.service.StorageService;
 
 import java.io.File;
@@ -24,7 +25,6 @@ public class Main {
         }
 
         try {
-            // Assume we run from project root, adjacent to yaml files
             File configParams = new File("config.yaml");
             if (!configParams.exists()) {
                 System.err.println("Error: config.yaml not found in current directory.");
@@ -48,8 +48,8 @@ public class Main {
                         .fetchListings(config);
                 System.out.println("Found " + listings.size() + " listings.");
 
-                List<com.liafinder.model.ScoredListing> scored = com.liafinder.service.RankingService
-                        .scoreListings(config, listings);
+                RankingService rankingService = new RankingService();
+                List<com.liafinder.model.ScoredListing> scored = rankingService.scoreListings(config, listings);
 
                 System.out.println("\nTop Matches:");
                 for (int i = 0; i < Math.min(10, scored.size()); i++) {
@@ -58,7 +58,6 @@ public class Main {
                             sl.score, sl.url);
                 }
 
-                // Save results
                 StorageService.saveListings(scored, config.output().dataDir());
 
             } else if ("outreach".equals(mode) || "2".equals(mode)) {
@@ -68,7 +67,6 @@ public class Main {
                 System.out.println("Loaded " + companies.size() + " companies.");
                 System.out.println("Loaded profile for: " + profile.person().get("full_name"));
 
-                // Actual outreach generation call
                 for (Company c : companies) {
                     OutreachService.generateOutreach(config, c, profile);
                 }

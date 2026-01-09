@@ -2,138 +2,171 @@
 
 This document visualizes the structure and functional flow of the **LIA Finder AI Assistant**.
 
-## 1. Use Case Diagram
+## 1. System Architecture (Layered)
+We use a **Layered Architecture** to separate concerns. This ensures that the user interface (CLI) is decoupled from the business logic and data storage.
+
+```mermaid
+graph TD
+    subgraph "Presentation Layer"
+        CLI["Main (CLI)"]
+    end
+
+    subgraph "Business Logic Layer"
+        CM["ConfigManager (Singleton)"]
+        JSS["JobSearchService"]
+        RS["RankingService (Strategy)"]
+        DS["DaemonService (Observer)"]
+        OS["OutreachService"]
+    end
+
+    subgraph "Domain Layer (Model)"
+        Model["Models: Listing, Company, Profile"]
+    end
+
+    subgraph "Infrastructure / Data Layer"
+        API["JobTech API (External)"]
+        SS["StorageService"]
+        FS["File System (YAML/JSON)"]
+    end
+
+    %% Interactions
+    CLI --> CM
+    CLI --> JSS
+    CLI --> RS
+    CLI --> DS
+    CLI --> OS
+
+    JSS --> API
+    DS --> JSS
+    DS --> RS
+    
+    RS --> Model
+    JSS --> Model
+    
+    DS --> SS
+    SS --> FS
+    CM --> FS
+```
+
+## 2. Use Case Diagram (OOA)
 This diagram shows how you (the User) interact with the different modes of the application.
 
 ```mermaid
 graph LR
-    U["User (Student)"]
+    User((Student))
     
     subgraph "LIA Finder System"
-        UC1("Monitor LIA (Option 1)")
-        UC2("Build Outreach (Option 2)")
-        UC3("Run Daemon (Option 3)")
-        UC4("Fetch from JobTech API")
-        UC5("Generate DOCX/Email")
-        UC6("Save Results to JSON")
+        UC1[Monitor LIA Listings]
+        UC2[Generate Outreach Material]
+        UC3[Run Background Daemon]
+        
+        UC_API[Fetch from JobTech API]
+        UC_Score[Score & Rank Listings]
+        UC_Save[Save Results to JSON]
+        UC_Doc[Generate Email/DOCX]
     end
 
-    U --> UC1
-    U --> UC2
-    U --> UC3
+    User --> UC1
+    User --> UC2
+    User --> UC3
     
-    UC1 -.->|include| UC4
-    UC1 -.->|include| UC6
-    UC2 -.->|include| UC5
-    UC3 -.->|include| UC4
-    UC3 -.->|include| UC6
+    UC1 -.->|include| UC_API
+    UC1 -.->|include| UC_Score
+    UC1 -.->|include| UC_Save
+    
+    UC2 -.->|include| UC_Doc
+    
+    UC3 -.->|include| UC_API
+    UC3 -.->|include| UC_Score
+    UC3 -.->|include| UC_Save
 ```
 
 ---
 
-## 2. Class Diagram
-This diagram shows the relationship between data models (Records) and the Business Logic (Services).
+## 3. Class Diagram (OOD)
+This diagram shows the relationship between classes and the applied **Design Patterns** (Singleton, Strategy, Observer).
 
 ```mermaid
 classDiagram
+    %% Core
     class Main {
         +main(args)
-        -chooseMode() String
     }
 
-    class ConfigLoader {
-        +loadConfig(path) AppConfig
-        +loadCompanies(path) List~Company~
-        +loadProfile(path) Profile
+    %% Singleton Pattern
+    class ConfigManager {
+        -static instance : ConfigManager
+        +getInstance() ConfigManager
+        +getConfig() AppConfig
     }
 
+    %% Services
     class JobSearchService {
-        +fetchListings(AppConfig) List~Listing~
-        -parseResponse(json, AppConfig)
-        -buildQueries(AppConfig)
+        +fetchListings(AppConfig)
     }
 
+    %% Strategy Pattern Context
     class RankingService {
-        +scoreListings(AppConfig, List~Listing~) List~ScoredListing~
+        -strategies : List~ScoringStrategy~
+        +scoreListings(listings)
     }
 
-    class OutreachService {
-        +generateOutreach(AppConfig, Company, Profile)
+    %% Strategy Interface
+    class ScoringStrategy {
+        <<interface>>
+        +score(ScoredListing, AppConfig)
     }
 
-    class StorageService {
-        +saveListings(List~ScoredListing~, String path)
-    }
-
+    %% Observer Pattern Subject
     class DaemonService {
+        -observers : List~ListingObserver~
         +start(AppConfig)
+        +notifyObservers(listings)
     }
 
-    %% Data Models
-    class Listing {
-        +String title
-        +String company
-        +String location
-        +String url
-        +String description
-    }
-
-    class ScoredListing {
-        +double score
-        +List~String~ reasons
-    }
-
-    class AppConfig {
-        <<Record>>
-        +SearchConfig search
-        +LiaConfig lia
-        +LinkedInConfig linkedin
+    %% Observer Interface
+    class ListingObserver {
+        <<interface>>
+        +onListingsFound(listings)
     }
 
     %% Relationships
-    Listing <|-- ScoredListing : Inheritance
-    Main --> ConfigLoader : Uses
-    Main --> JobSearchService : Orchestrates
-    Main --> RankingService : Orchestrates
-    Main --> OutreachService : Orchestrates
-    Main --> StorageService : Orchestrates
-    Main --> DaemonService : Orchestrates
+    Main --> ConfigManager : Singleton Access
+    Main --> JobSearchService : Uses
+    Main --> RankingService : Uses
+    Main --> DaemonService : Uses
     
-    DaemonService --> JobSearchService : Uses
-    DaemonService --> RankingService : Uses
-    DaemonService --> StorageService : Uses
-    
-    JobSearchService ..> Listing : Produces
-    RankingService ..> ScoredListing : Produces
-    
-    RankingService --> AppConfig : Configures Logic
-    JobSearchService --> AppConfig : Configures Search
+    RankingService o-- ScoringStrategy : Aggregates
+    ScoringStrategy <|.. KeywordScoringStrategy : Implements
+    ScoringStrategy <|.. DateScoringStrategy : Implements
+    ScoringStrategy <|.. LocationScoringStrategy : Implements
+
+    DaemonService o-- ListingObserver : Notifies
+    ListingObserver <|.. FileStorageObserver : Implements
+    ListingObserver <|.. ConsoleLoggerObserver : Implements
 ```
 
-## 3. Design Patterns
-Here is a breakdown of the "building blocks" used in this project and why they make life easier for a developer.
+## 4. Design Patterns (VG Requirements)
+Here is a breakdown of the design patterns used in this project.
 
-### 🏗️ Service Layer Pattern (The "Specialist" Approach)
-**What is it?** A way to organize code by separating the "business logic" (the actual work) from the rest of the app. Instead of putting everything in `Main.java`, we create dedicated classes that act as specialists for specific tasks.
-- **In this project:** `JobSearchService` is the "Search Specialist", `RankingService` is the "Judge", and `OutreachService` is the "Writer".
-- **Why I used it:** It keeps the code clean. If I need to fix how the search works, I don't risk breaking the email generator.
+### 1. Singleton Pattern (`ConfigManager`)
+**What is it?** Ensures a class has only one instance and provides a global point of access to it.
+- **Where:** `ConfigManager.java`
+- **Why:** I only want to load the configuration file (`config.yaml`) once. By making it a Singleton, I can access the settings from anywhere in the app without passing the config object around constantly.
 
-### 📦 DTO / Record Pattern (The "Secure Box")
-**What is it?** Simple objects designed solely to carry data between different parts of the system. They don't have complex logic; they just hold information securely.
-- **In this project:** `Listing` and `Company` are Java Records.
-- **Why I used it:** Records are immutable (read-only). This means once I fetch a job listing, I can be sure no other part of the code accidentally changes the company name or URL. It's a safety net.
+### 2. Strategy Pattern (`RankingService`)
+**What is it?** Defines a family of algorithms, encapsulates each one, and makes them interchangeable.
+- **Where:** `RankingService.java` uses `ScoringStrategy` interface.
+- **Why:** Scoring a job listing is complex. Instead of one giant `if-else` block, I split the logic into strategies:
+    - `KeywordScoringStrategy`: Checks for "Java", "LIA".
+    - `DateScoringStrategy`: Checks for "2026", "October".
+    - `LocationScoringStrategy`: Checks for "Stockholm", "Remote".
+  This makes it super easy to add new rules later (e.g., a "SalaryStrategy") without breaking the existing code.
 
-### 🏭 Factory Pattern (The "Complex Assembler")
-**What is it?** A method or class responsible for creating objects that are complicated to build. It hides the messy construction details from the rest of the application.
-- **In this project:** `ConfigLoader.loadConfig()`.
-- **Why I used it:** Reading a YAML file involves opening streams, parsing text, and mapping fields. I hid all that complexity inside `ConfigLoader`. The rest of the app just asks for "the config" and gets it.
-
-### 🧱 Builder Pattern (The "Step-by-Step" Builder)
-**What is it?** A pattern used to construct complex objects step-by-step. It allows you to set only the properties you need, in any order, making the code much more readable than a giant constructor with many arguments.
-- **In this project:** Used when creating HTTP requests (`HttpRequest.newBuilder()`).
-- **Why I used it:** It makes the code read like a sentence: *"Create a request, set the URI, add a header, make it a GET, and build it."* Much easier to read than `new HttpRequest(url, "GET", headers, null, null...)`.
-
-### 🔄 Daemon Pattern (The "Background Worker")
-**What is it?** A design where a process runs continuously in the background, waiting for a specific time or event to trigger its work, without blocking the main user interface.
-- **In this project:** `DaemonService`.
-- **Why I used it:** I wanted the app to keep working even when I'm sleeping. This service wakes up every 24 hours, does the search, saves the results, and goes back to sleep, without me needing to click anything.
+### 3. Observer Pattern (`DaemonService`)
+**What is it?** Defines a subscription mechanism to notify multiple objects about any events that happen to the object they're observing.
+- **Where:** `DaemonService.java` notifies `ListingObserver`s.
+- **Why:** When the background daemon finds new jobs, it shouldn't care *how* we save them. It just shouts "I found jobs!" and the observers react:
+    - `FileStorageObserver`: Saves them to a JSON file.
+    - `ConsoleLoggerObserver`: Prints a message to the screen.
+  This separates the "searching" logic from the "saving" logic.

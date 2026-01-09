@@ -2,6 +2,7 @@ package com.liafinder;
 
 import com.liafinder.config.AppConfig;
 import com.liafinder.config.ConfigLoader;
+import com.liafinder.config.ConfigManager;
 import com.liafinder.model.Company;
 import com.liafinder.model.Profile;
 import com.liafinder.service.DaemonService;
@@ -31,7 +32,10 @@ public class Main {
                 return;
             }
 
-            AppConfig config = ConfigLoader.loadConfig("config.yaml");
+            // Use Singleton to load config
+            ConfigManager.getInstance().loadConfig("config.yaml");
+            AppConfig config = ConfigManager.getInstance().getConfig();
+
             System.out.println("Loaded Config. Location: " + config.search().locations());
 
             if ("monitor".equals(mode) || "1".equals(mode)) {

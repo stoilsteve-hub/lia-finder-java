@@ -16,7 +16,7 @@ Studenter inom IT och System Development (t.ex. Yrkeshögskola) som söker LIA/p
 - Få stöd vid skapande av contact emails och personalized cover letters.
 - Möjlighet att köra automatiska sökningar i bakgrunden via ett background process.
 
-## 4. Requirements Specification (Minimum 12 Requirements)
+## 4. Requirements Specification
 Systemet ska uppfylla följande funktionella krav:
 
 1. **Fetch Job Ads:** Systemet ska kunna hämta jobbannonser från JobTech (Platsbanken) API.

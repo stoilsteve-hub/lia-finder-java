@@ -65,4 +65,10 @@ I projektet har tre etablerade design patterns implementerats för att lösa spe
 ## 8. Source Code
 **GitHub repository:** [https://github.com/stoilsteve-hub/lia-finder-java](https://github.com/stoilsteve-hub/lia-finder-java)
 
+
+## Configuration
+- `config.yaml`: Search terms, LIA dates, and strictness rules.
+- `companies.yaml`: Your target company list.
+- `profile.yaml`: Your personal data for outreach.
+
 *Made by Stoil Steve Zhelyazkov*

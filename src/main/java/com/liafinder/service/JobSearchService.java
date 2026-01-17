@@ -116,7 +116,7 @@ public class JobSearchService {
                     String titleL = title.toLowerCase();
                     String combinedL = (titleL + "\n" + description.toLowerCase());
 
-                    // 1. Check for bad words
+                    // Check for bad words
                     List<String> badTerms = new ArrayList<>(List.of(
                             "chef", "manager", "ledare", "senior", "principal", "specialist",
                             "erfaren", "tillsvidare", "fast anställning", "hel-tid", "fullstack-utvecklare till",
@@ -138,8 +138,7 @@ public class JobSearchService {
                         }
                     }
 
-                    // 2. Check title for LIA keywords
-                    // Most LIA ads have "LIA" or "Intern" in the title
+                    // Check for bad words
                     List<String> liaKeywords = cfg.search().liaTerms() != null ? cfg.search().liaTerms()
                             : List.of("LIA", "praktik", "intern", "yh-");
                     boolean titleHasLia = containsAny(titleL, liaKeywords);
@@ -149,13 +148,12 @@ public class JobSearchService {
                         continue;
                     }
 
-                    // 3. Double check description
+                    // Check description
                     if (!containsAny(combinedL, liaKeywords)) {
                         droppedNoLia++;
                         continue;
                     }
 
-                    // 4. Check dates (optional)
                     if (combinedL.contains("2025") && !combinedL.contains("2026")) {
                         // skip for now
                     }

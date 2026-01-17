@@ -27,7 +27,7 @@ public class RankingService {
 
         for (Listing l : listings) {
             ScoredListing sl = new ScoredListing(l);
-            sl.score = 1.0; // Base score
+            sl.score = 1.0;
 
             for (ScoringStrategy strategy : strategies) {
                 strategy.score(sl, cfg);

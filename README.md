@@ -1,4 +1,4 @@
-# LIA Finder AI Assistant (Java Version)
+# LIA Finder (Java Version)
 
 ## 1. Introduktion
 LIA Finder är ett Java-baserat verktyg som har utvecklats för att automatisera processen att söka LIA-platser (Lärande i Arbete). Systemet hjälper studenter att identifiera relevanta praktikannonser genom att övervaka annonser, filtrera bort irrelevanta träffar och generera underlag för outreach mot företag.

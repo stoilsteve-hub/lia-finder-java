@@ -1,61 +1,68 @@
-# LIA Finder AI Assistant (Java Version) 🤖🇸🇪
+# LIA Finder AI Assistant (Java Version)
 
-Welcome to the Java port of the **LIA Finder AI Assistant**. This tool is designed to help Java developer students proactively find LIA (Lärande i Arbete) opportunities in Sweden.
+## 1. Introduktion
+LIA Finder är ett Java-baserat verktyg som har utvecklats för att automatisera processen att söka LIA-platser (Lärande i Arbete). Systemet hjälper studenter att identifiera relevanta praktikannonser genom att övervaka annonser, filtrera bort irrelevanta träffar och generera underlag för outreach mot företag.
 
-The tool monitors the **JobTech (Platsbanken) API**, applies strict relevance filtering, and helps you build outreach materials.
+## 2. Product Goal
+Målet med produkten är att effektivisera processen för att hitta en LIA-plats. Istället för att manuellt söka på Platsbanken dagligen ska systemet automatiskt hitta, analysera, ranka och spara relevanta annonser samt underlätta skapandet av personalized cover letters och contact emails.
 
-## 📊 Analysis & Design
-This project follows a structured Object-Oriented Analysis and Design (OOAD) process.
+## 3. Target Audience and User Needs
+**Target audience:**
+Studenter inom IT och System Development (t.ex. Yrkeshögskola) som söker LIA/praktik.
 
-For detailed diagrams (System Architecture, Use Case, Class Diagram), please refer to [architecture_diagrams.md](architecture_diagrams.md).
+**User needs:**
+- Spara tid genom att automatiskt filtrera bort irrelevanta annonser (t.ex. “Senior Developer”).
+- Få snabba notifications när nya relevanta annonser publiceras.
+- Få stöd vid skapande av contact emails och personalized cover letters.
+- Möjlighet att köra automatiska sökningar i bakgrunden via ett background process.
 
-## 🏗️ Design Patterns (VG Requirements)
-I have implemented several design patterns to make the code more flexible and professional.
+## 4. Requirements Specification (Minimum 12 Requirements)
+Systemet ska uppfylla följande funktionella krav:
 
-### 1. Singleton Pattern (`ConfigManager`)
-**What is it?** Ensures a class has only one instance and provides a global point of access to it.
-- **Where:** `ConfigManager.java`
-- **Why:** I only want to load the configuration file (`config.yaml`) once. By making it a Singleton, I can access the settings from anywhere in the app without passing the config object around constantly.
+1. **Fetch Job Ads:** Systemet ska kunna hämta jobbannonser från JobTech (Platsbanken) API.
+2. **Search Configuration:** Användaren ska kunna konfigurera search keywords (t.ex. “Java”, “LIA”) och location (t.ex. “Stockholm”).
+3. **Exclusion Filtering:** Systemet ska automatiskt filtrera bort annonser som innehåller exclusion keywords (t.ex. “Senior”, “Manager”, “5 years experience”).
+4. **Scoring and Ranking:** Varje annons ska tilldelas en relevance score baserad på förekomst av keywords i title och description.
+5. **CLI Menu:** Vid uppstart ska användaren kunna välja execution mode via en textbaserad CLI menu.
+6. **One-time Run Mode:** Systemet ska kunna köras en gång, presentera resultaten i console output och därefter avslutas.
+7. **Daemon Mode:** Systemet ska kunna köras som ett background process som söker efter nya annonser varje timme.
+8. **Result Storage:** Hittade annonser ska sparas lokalt i en JSON-fil för historik och spårbarhet.
+9. **Configuration Management:** Alla inställningar (API keys, keywords, locations) ska läsas in från en extern `config.yaml`.
+10. **Company List Loading:** Systemet ska kunna läsa in en lista med intressanta företag från `companies.yaml`.
+11. **Student Profile Loading:** Systemet ska kunna läsa in studentens uppgifter (namn, kontaktinformation) från `profile.yaml`.
+12. **Cover Letter Generation:** Systemet ska kunna generera ett `personalized_cover_letter.docx` anpassat för ett specifikt företag.
+13. **Contact Email Generation:** Systemet ska kunna skapa ett utkast till ett contact email (`outreach_email.txt`) för spontaneous applications.
 
-### 2. Strategy Pattern (`RankingService`)
-**What is it?** Defines a family of algorithms, encapsulates each one, and makes them interchangeable.
-- **Where:** `RankingService.java` uses `ScoringStrategy` interface.
-- **Why:** Scoring a job listing is complex. Instead of one giant `if-else` block, I split the logic into strategies:
-    - `KeywordScoringStrategy`: Checks for "Java", "LIA".
-    - `DateScoringStrategy`: Checks for "2026", "October".
-    - `LocationScoringStrategy`: Checks for "Stockholm", "Remote".
-  This makes it super easy to add new rules later (e.g., a "SalaryStrategy") without breaking the existing code.
+## 5. Use Case Diagram
+Se [architecture_diagrams.md](architecture_diagrams.md#2-use-case-diagram-ooa) för diagrammet.
 
-### 3. Observer Pattern (`DaemonService`)
-**What is it?** Defines a subscription mechanism to notify multiple objects about any events that happen to the object they're observing.
-- **Where:** `DaemonService.java` notifies `ListingObserver`s.
-- **Why:** When the background daemon finds new jobs, it shouldn't care *how* we save them. It just shouts "I found jobs!" and the observers react:
-    - `FileStorageObserver`: Saves them to a JSON file.
-    - `ConsoleLoggerObserver`: Prints a message to the screen.
-  This separates the "searching" logic from the "saving" logic.
+## 6. Class Diagram
+Se [architecture_diagrams.md](architecture_diagrams.md#3-class-diagram-ood) för diagrammet.
 
-## 🚀 How to Run
+**Visade relationer:**
+- *Inheritance (Implements)*
+- *Aggregation (RankingService innehåller en lista av ScoringStrategies)*
+- *Dependency (Main class använder services)*
 
-### 1. Prerequisites
-- **Java 17** or higher
-- **Maven**
-- A **JobTech API Key** (Set as environment variable `JOBTECH_API_KEY`)
+## 7. Design Patterns
+I projektet har tre etablerade design patterns implementerats för att lösa specifika arkitektoniska problem.
 
-### 2. Build the Project
-```bash
-mvn clean package
-```
+### 7.1 Singleton Pattern (`ConfigManager`)
+**Purpose:** Att säkerställa att en klass endast har en instans samt tillhandahålla en global access point.
 
-### 3. Run the Application
-You can run the interactive menu by executing the JAR or using Maven:
-```bash
-java -jar target/lia-finder-1.0-SNAPSHOT.jar
-```
+**Motivation:** Konfigurationsfiler (t.ex. `config.yaml`) ska endast läsas in en gång vid uppstart. Genom att implementera `ConfigManager` som en Singleton kan systemet dela konfigurationsdata mellan olika komponenter utan att behöva skicka objektet som parameter, vilket minskar coupling och förbättrar minneshantering.
 
-## 🛠️ Configuration
-- `config.yaml`: Search terms, LIA dates, and strictness rules.
-- `companies.yaml`: Your target company list.
-- `profile.yaml`: Your personal data for outreach.
+### 7.2 Strategy Pattern (`RankingService`)
+**Purpose:** Att definiera en familj av scoring algorithms, kapsla in dem och göra dem utbytbara.
 
----
-*Created with LOVE for my Java classmates to use freely.*
+**Motivation:** Job ad ranking kan implementeras på flera sätt. Istället för att använda komplexa conditional statements har poängsättningslogiken delats upp i separata strategies såsom `KeywordScoringStrategy`, `DateScoringStrategy` och `LocationScoringStrategy`. Detta förbättrar readability och möjliggör enkel utbyggnad enligt Open/Closed Principle.
+
+### 7.3 Observer Pattern (`DaemonService`)
+**Purpose:** Att definiera ett dependency relationship där observers automatiskt notifieras när ett subject ändrar tillstånd.
+
+**Motivation:** När `DaemonService` identifierar nya job ads i background execution ska den inte själv hantera vad som händer därefter. Istället notifieras registrerade observers, exempelvis `FileStorageObserver` (persistens) och `ConsoleLoggerObserver` (presentation). Detta separerar core logic från presentation och storage concerns, vilket ökar flexibiliteten.
+
+## 8. Source Code
+**GitHub repository:** [https://github.com/stoilsteve-hub/lia-finder-java](https://github.com/stoilsteve-hub/lia-finder-java)
+
+*Made by Stoil Steve Zhelyazkov*
